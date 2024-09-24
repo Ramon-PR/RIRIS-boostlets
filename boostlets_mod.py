@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mod_plotting_utilities import plot_array_images
+from scipy.io import savemat
+import os
 
 # Meyer Functions
 # ---------------
@@ -334,6 +336,9 @@ class Boostlet_syst:
         self.dt = dt
         self.cs = cs
 
+        self.base_v = base_v
+        self.base_h = base_h
+
         # Define axis om[1/s], kx[1/m] and k[1/s]. 
         # Use of om & k to have an acoustic cone not dependent on cs. 
         self.om = np.fft.fftshift( np.fft.fftfreq(n=self.M, d=self.dt) )
@@ -446,6 +451,40 @@ class Boostlet_syst:
 
     def get_axis(self):
         return self.om, self.k
+    
+    def save_dict(self):
+        # Get boostlet dictionary
+        Psi = self.get_boostlet_dict()
+
+        # Create a dict with booslets and label fields
+        mdic = {"Psi": Psi, 
+        "label": f"boostlets with: \n"
+        f"{self.max_sc_v} vert. scales, "
+        f"{self.max_sc_h} hor. scales, \n" 
+        f"{len(self.v_thetas)} vert. angles, " 
+        f"{len(self.h_thetas)} hor. angles, \n\n"
+        "factor for supports: \n"
+        f"vert. base: {self.base_v}, \n"
+        f"hor. base: {self.base_h}"
+        }
+
+        folder = "./dependencies/basisFunctions/boostlets/"
+        file = rf"dict_BS_m_{self.M}_n_{self.N}_hsc_{self.max_sc_h}_vsc_{self.max_sc_v}_thV_{len(self.v_thetas)}_thH_{len(self.h_thetas)}.mat"
+        file_path = os.path.join(folder, file)
+
+        print("Saving dictionary in \n"
+               f"{file_path} \n" )
+        print(mdic['label'])
+
+        # Get file's directory
+        directory = os.path.dirname(file_path)
+
+        # create file's directory
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Save 
+        savemat(file_path, mdic)
 
 
 # -------------------------------------------------
