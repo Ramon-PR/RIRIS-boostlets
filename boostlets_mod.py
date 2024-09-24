@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from mod_plotting_utilities import plot_array_images
 
 # Meyer Functions
 # ---------------
@@ -239,48 +241,212 @@ class Meyer_system:
         omega = np.fft.fftshift( np.fft.fftfreq(m_points) )*2*self.b 
         return omega
 
-    # def get_Psi_system(self, m_points):
-    #     # omega = [-0.5, ..., 0, ...,0.5-domega]*b
-    #     self.omega = self.get_omega(m_points)
-    #     self.S = self.max_scales(m_points)
-    #     self.
-    #     return omega
+# Theta distribution for Boostlets:
+# ----------------------------------------------------------------------
+def ang_segmento(n_ondas):
+    return np.pi/4/n_ondas
 
+def ang_centros(n_ondas):
+    d_alp = ang_segmento(n_ondas)
+    indxs = np.arange(1,n_ondas+1)
+    phis = np.pi/4 - (2*indxs - 1)*d_alp
+    return phis
 
+def theta_dist(n_ondas):
+    phis = ang_centros(n_ondas)
+    m = np.tan(phis)
+    h_thetas = np.log(1+m)/2 - np.log(1-m)/2
+    return h_thetas
+# ----------------------------------------------------------------------
 
-
-
-
-
+# Boost operation:
+# ----------------------------------------------------------------------
+def boost_points(om, k, a, theta):
+    k_b  = a*(  k*np.cosh(theta) - om*np.sinh(theta)) 
+    om_b = a*( om*np.cosh(theta) -  k*np.sinh(theta)) 
     
-#  EXAMPLE
-# a, alpha = 1, 0.5
-# b, c = a/alpha, a/alpha**2     
-# mw = Meyer_system(a=a, alpha=alpha)
-# omega = np.linspace(-4.5, 4.5, 1001)*1
-# f = mw.b_om(omega)
-# psi_s0 = mw.psi_1(omega, 0)
-# psi_s1 = mw.psi_1(omega, 1)
-# psi_s2 = mw.psi_1(omega, 2)
-# x_ticks = [-c, -b, -a, 0, a, b, c] 
-# x_labels = ["-c", "-b", "-a", "0", "a", "b", "c"]
-# fig, ax = plt.subplots(1,3, figsize=(25,6) )
-# ax[0].plot(omega, f, '-', label=r'$b(\omega)$', linewidth=2.5)
-# ax[0].plot(omega, psi_s0, '--',label=rf'$\Psi_1(\omega, S={0}) $', linewidth=1.5)
-# ax[0].scatter(omega[psi_s0 == 1.0], psi_s0[psi_s0 == 1.0], color='k', label=r'$\Psi_1(\omega)=1$')
-# ax[0].scatter(omega[f == 1.0], f[f == 1.0], color='red', label=r'$b(\omega)=1$')
-# ax[0].set_xticks(x_ticks, labels=x_labels)
-# ax[0].grid(visible=True)
-# ax[0].legend()
-# ax[1].plot(omega, psi_s0, '--',label=rf'$\Psi_1(\omega, S={0}) $', linewidth=1.5)
-# ax[1].plot(omega, psi_s1, '--',label=rf'$\Psi_1(\omega, S={1}) $', linewidth=1.5)
-# ax[1].plot(omega, psi_s2, '--',label=rf'$\Psi_1(\omega, S={2}) $', linewidth=1.5)
-# ax[1].grid(visible=True)
-# ax[1].legend()
-# ax[2].plot(omega, psi_s0**2 + psi_s1**2 + psi_s2**2, '--',label=r'$\sum_{S=0}^{S=2} \Psi_1^2(\omega, S) $', linewidth=1.5)
-# ax[2].grid(visible=True)
-# ax[2].legend()
-# plt.show()
+    return k_b, om_b
+# ----------------------------------------------------------------------
+
+# Diffeo for horizontal cone
+# ----------------------------------------------------------------------
+def diffeo_hor_cone(k, om):
+    """
+    Ad no no depende de theta. No lo defino para k==om incluido (k=0, om=0)
+    Th es:
+       inf en k==om 
+      -inf para k==-om
+       nan para k=om=0
+    I don not use np.nan or np.inf since python needs to explicitly set how to add np.nan 
+    and other numbers
+    """
+    # Crear una máscara para el caso cuando |k| > |om|
+    hor_cone = np.abs(k)>np.abs(om)
+    
+    Ad = np.sqrt(np.abs(k**2 - om**2))*hor_cone
+
+    # Lo que está en el cono horiz lo dejo tal cual el resto lo pongo en 0 (arctanh no quiere 1, o -1)
+    ratio = np.divide(om, k, where=(k != 0))*hor_cone + np.zeros_like(k)*(~hor_cone)
+
+    Th = np.arctanh(ratio)  # Calcula Th evitando la división por cero
+    Th[~hor_cone] = 0  # Asignar 0 fuera del cono
+
+    return Ad, Th
+# ----------------------------------------------------------------------
+
+# Boostlet in horizontal cone
+# ----------------------------------------------------------------------
+def get_boostlet_h(om, kx, a_i, theta_j, wavelet_fun=meyerWaveletFun, scaling_fun=meyerScalingFun):
+    KX_b, OM_b = boost_points(om, kx, a_i, theta_j)
+    Ad_h, Th_h = diffeo_hor_cone(k=KX_b, om=OM_b)
+    Phi = wavelet_fun(Ad_h)*scaling_fun(Th_h)
+    Phi /= np.max(np.abs(Phi)) 
+    return Phi, KX_b, OM_b
+# ----------------------------------------------------------------------
+
+
+# Boostlet system con Meyer System  
+# ----------------------------------------------------------------------
+class Boostlet_syst:
+    def __init__(self, dx, dt, cs,
+                 M=100, N=100, 
+                 n_v_scales=1, n_h_scales=1,
+                 n_v_thetas=3, n_h_thetas=3,  
+                 base_v=0.5, base_h=0.5, 
+                 wavelet_fun=meyerWaveletFun, scaling_fun=meyerScalingFun 
+                 ) -> None:
+        """ 
+        M filas
+        N columnas
+        dx: space sampling
+        dt: time sampling
+        cs: sound velocity
+        n_v_scales: number of vertical scales
+        n_h_scales: number of horizontal scales
+        base_v: alfa for Meyer_system for vertical scales
+        base_h: alfa for Meyer_system for horizontal scales
+        """
+
+        self.M = M
+        self.N = N
+
+        self.dx = dx
+        self.dt = dt
+        self.cs = cs
+
+        # Define axis om[1/s], kx[1/m] and k[1/s]. 
+        # Use of om & k to have an acoustic cone not dependent on cs. 
+        self.om = np.fft.fftshift( np.fft.fftfreq(n=self.M, d=self.dt) )
+        self.kx = np.fft.fftshift( np.fft.fftfreq(n=self.N, d=self.dx) )
+        self.k = self.cs * self.kx
+    
+        # Meyer system for horizontal and vertical cones
+        self.ms_v = Meyer_system(b_point=np.max(np.abs(self.om)), alpha=base_v)
+        self.ms_h = Meyer_system(b_point=np.max(np.abs(self.k)), alpha=base_h)
+
+        # number of scales:
+        self.max_sc_v = min(n_v_scales, self.ms_v.max_scales(M))
+        self.max_sc_h = min(n_h_scales, self.ms_h.max_scales(N))
+
+        # theta distribution to equidivide the acoustic cone
+        self.v_thetas = theta_dist(n_v_thetas)
+        self.h_thetas = theta_dist(n_h_thetas)
+
+        self.n_boostlets = (self.max_sc_v+1)*n_v_thetas + (self.max_sc_h+1)*n_h_thetas + 1
+
+        self.wavelet_fun = wavelet_fun
+        self.scaling_fun = scaling_fun
+
+    def get_boostlet_dict(self):
+        K, OM = np.meshgrid(self.k, self.om)
+
+        # Primero, la función de escala (boost_type=1)
+        Psi = np.zeros((self.M, self.N, self.n_boostlets), dtype=complex)
+
+        count=1
+        # Cono horizontal
+        for isc in range(self.max_sc_h + 1):
+            for theta_j in self.h_thetas:
+                K_b, OM_b = boost_points(om=OM, k=K, a=1, theta=theta_j)
+                Ad, Th = diffeo_hor_cone(k=K_b, om=OM_b)
+                Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(Th)
+                Phi /= np.max(np.abs(Phi)) 
+                Psi[:,:,count] = Phi
+                count += 1
+
+        # Cono vertical
+        for isc in range(self.max_sc_v + 1):
+            for theta_j in self.v_thetas:
+                K_b, OM_b = boost_points(om=K, k=OM, a=1, theta=theta_j)
+                Ad, Th = diffeo_hor_cone(k=K_b, om=OM_b)
+                Phi = self.ms_v.psi_1(Ad, scale=isc)*self.scaling_fun(Th)
+                Phi /= np.max(np.abs(Phi)) 
+                Psi[:,:,count] = Phi
+                count += 1
+
+        # Check sum of squares for all scales
+        Phi = np.sum(Psi**2, axis=2)
+        # Add the scaling function to the dictionary to complete R2
+        mask = ~(np.abs(Phi) > 0.0)
+        Psi[:,:,0] = np.ones_like(Phi)*mask
+
+        # Check sum of squares for all scales
+        Phi = np.sum(Psi**2, axis=2)
+        # Divide each scale by the sqrt of the sum, to ensure Parseval
+        Psi /= np.sqrt(Phi)[:, :, np.newaxis]  
+
+        return Psi 
+
+    def plot_dict_boostlets(self):
+        Psi = self.get_boostlet_dict()
+        plot_array_images(Psi, num_cols=5)
+        
+        
+    def gen_boostlet_h(self, theta, isc):
+        """
+        En vez de usar a, uso MeyerSystem 
+        """
+        K, OM = np.meshgrid(self.k, self.om)
+        K_b, OM_b = boost_points(om=OM, k=K, a=1, theta=theta)
+        Ad, Th = diffeo_hor_cone(k=K_b, om=OM_b)
+        # Phi = self.wavelet_fun(Ad)*self.scaling_fun(Th)
+        Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(Th)
+        Phi /= np.max(np.abs(Phi)) 
+        return Phi #, K_b, OM_b
+    
+    def plot_boostlet(self, itheta, isc):
+        Phi = self.gen_boostlet_h(theta=self.h_thetas[itheta], isc=isc)
+        fig, ax = plt.subplots(1,1)
+        ax.contourf(self.k, self.om, Phi)
+
+
+
+    def plot_psi_1(self, scale):
+        psi_v = self.ms_v.psi_1(self.om, scale)
+        psi_h = self.ms_h.psi_1(self.k, scale)
+
+        fig, axs = plt.subplots(1,2)
+        axs[0].plot(self.om, psi_v)
+        axs[1].plot(self.k, psi_h)
+
+        xlabs = [r'$\omega$', r'$k$']
+        ylabs = [r'$\psi_1$', r'$\psi_1$']
+        titles = [rf'scale={scale}', rf'scale={scale}']
+
+        for (ax, xl, yl, ttl) in zip(axs, xlabs, ylabs, titles):
+            ax.set_xlabel(xl)
+            ax.set_ylabel(yl)
+            ax.set_title(ttl)
+        plt.tight_layout()
+        plt.show()
+
+    def print_max_scales(self):
+        print(rf"vertical scales: {self.max_sc_v}")
+        print(rf"horizontal scales: {self.max_sc_h}")
+
+    def get_axis(self):
+        return self.om, self.k
+
 
 # -------------------------------------------------
 # Difeomorfismo
