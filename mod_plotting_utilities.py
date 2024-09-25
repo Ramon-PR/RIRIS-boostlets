@@ -35,3 +35,16 @@ def plot_array_images(array, num_cols=5):
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_ls_images(images, titles):
+
+    images = [np.abs(im) for im in images if im.dtype == "complex128"]
+
+    fig, ax = plt.subplots(1, len(images), figsize=(18, 6))
+    for i in range(len(images)):
+        ax[i].imshow(images[i])
+        ax[i].set_title(titles[i])
+        ax[i].axis('off')
+    plt.tight_layout()
+    plt.show()
