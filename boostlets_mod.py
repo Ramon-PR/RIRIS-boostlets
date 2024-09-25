@@ -511,15 +511,15 @@ def computeDiffeo(OM, KX, vert_hor_cone):
     Z = OM**2 - KX**2
     
     if vert_hor_cone == 0:  # Vertical cone / far field
-        Ad = np.sqrt(Z.astype(complex)).flatten()
+        Ad = np.sqrt(Z.astype(complex))
         with np.errstate(divide='ignore', invalid='ignore'):
             div = np.divide(KX, OM).astype(complex)
-            Th = np.arctanh(div).flatten()
+            Th = np.arctanh(div)
     else:  # Horizontal cone / near field
-        Ad = np.sqrt(-Z.astype(complex)).flatten()
+        Ad = np.sqrt(-Z.astype(complex))
         with np.errstate(divide='ignore', invalid='ignore'):
             div = np.divide(OM, KX).astype(complex)
-            Th = np.arctanh(div).flatten()
+            Th = np.arctanh(div)
     
     return Ad, Th
 
@@ -572,10 +572,10 @@ def genBoostlet(N, a_i, theta_j, far_or_near, boost_type):
 
     # Generate the appropriate function based on boost_type
     if boost_type == 1:
-        phi = meyerScalingFun(N, Ad)
+        phi = meyerScalingFun(Ad)
     elif boost_type == 2:
-        PHI_1 = meyerWaveletFun(N, Ad)
-        PHI_2 = meyerScalingFun(N, Th)
+        PHI_1 = meyerWaveletFun(Ad)
+        PHI_2 = meyerScalingFun(Th)
         phi = PHI_1 * PHI_2
     else:
         raise ValueError("boost_type must be 1 or 2")
