@@ -51,7 +51,8 @@ epsilon = 9.4e-6 # ISTA
 # ## Create dict
 BS = Boostlet_syst(dx=dx, dt=1/fs, cs=cs,
                  M=M, N=N, 
-                 n_v_scales=n_v_scales, n_h_scales=n_h_scales, 
+                 n_v_scales=n_v_scales, n_h_scales=n_h_scales,
+                 n_v_thetas=n_v_thetas, n_h_thetas=n_h_thetas, 
                  base_v=base_v, base_h=base_h, 
                  )
 
@@ -75,13 +76,6 @@ mask0, _ = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics)
 
 
 # %% [markdown]
-# ## Remove elements from dict
-
-
-
-
-
-# %% [markdown]
 # ## Extrapolation
 
 # ----------------------------------------------------
@@ -92,6 +86,13 @@ extr_size = Sk.shape[:2]
 imOps = ImageOps(orig_image.shape, mask=mask0, extrap_shape=extr_size, mode=extrap_mode) 
 image = imOps.expand_image(orig_image)
 mask = imOps.get_mask(image)
+
+# %% [markdown]
+# ## Remove elements from dict
+
+
+
+
 
 # %% [markdown]
 # ----------------------------------------------------
