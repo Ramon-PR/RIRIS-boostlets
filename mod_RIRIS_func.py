@@ -36,7 +36,7 @@ def arburg_extrap(signal, extr_length, order=2):
     last_points = last_points[::-1] # give the "last points" in reverse order, the oldest the first (as lfilter wants the x and y)
 
     Z = lfiltic(b=1, a=a, y=last_points, x=None) # Initial conditions for the lfilter
-    yzi, _ = lfilter(b=1, a=a, x=np.zeros(extr_length), zi=Z)
+    yzi, _ = lfilter(b=np.array([1]), a=a, x=np.zeros(extr_length), zi=Z)
 
     extrap = np.concatenate((signal, yzi.real))
 
@@ -258,16 +258,7 @@ def common_operations(image, mask, Sk, alpha, threshold):
     # Aplica el umbral suave a la señal
     alpha_new = wthresh(signal, threshold)
 
-    # Calcula las métricas de esparcidad y residuo
-    # eta = np.linalg.norm(alpha_new.ravel(), 1)       # ||alpha_new||_1
-
-    # rec_image_new = mask * iffst(alpha_new, Sk)
-    # diff_image_new = mask * (image - rec_image_new)
-    # rho = np.linalg.norm(diff_image_new.ravel(), 2)  # || diff_image ||_2
-
-    return alpha_new #, eta, rho
-
-
+    return alpha_new 
 
 
 # %%
@@ -686,8 +677,6 @@ def perforMetrics(image, image_recov, image_under, fs, u, dx, room, f_plot=False
         plt.show()
 
     return NMSE_nlin, MAC, frqMAC
-
-
 
 
 # %% [markdown]
