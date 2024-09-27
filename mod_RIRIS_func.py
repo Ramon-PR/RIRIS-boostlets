@@ -272,7 +272,7 @@ def common_operations(image, mask, Sk, alpha, threshold):
 
 # %%
 
-def computePareto(image, mask, Sk, beta_set):
+def computePareto(image, mask, Sk, beta_set, f_verbose=False, f_plot=False):
     from scipy.interpolate import splrep, splev, splder
     import matplotlib.pyplot as plt
 
@@ -294,7 +294,8 @@ def computePareto(image, mask, Sk, beta_set):
         diff_image_new = mask * (image - rec_image_new)
         rho[bb] = np.linalg.norm(diff_image_new.ravel(), 2)  # || diff_image ||_2
 
-        print(f'Pareto iteration {bb+1}/{len(beta_set)}.')
+        if f_verbose:
+            print(f'Pareto iteration {bb+1}/{len(beta_set)}.')
 
     # Interpolación spline cúbica para eta y rho
     eta_sp = splrep(beta_set, np.log(eta))
@@ -314,32 +315,33 @@ def computePareto(image, mask, Sk, beta_set):
     beta_star = beta_set[idx_max_curv]
 
     # Graficar la función de curvatura y la curva L
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    if f_plot:
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-    axes[0].plot(np.log(rho), np.log(eta), 'ko', linewidth=2, markersize=8)
-    axes[0].axvline(np.log(rho[idx_max_curv]), color='r', linestyle='--', linewidth=2)
-    axes[0].axhline(np.log(eta[idx_max_curv]), color='r', linestyle='--', linewidth=2)
-    axes[0].set_xlabel(r'$\rho(\beta) = \| \hat{\mathbf{y}} - \mathbf{\Phi}\alpha \|_2$', fontsize=20, labelpad=10)
-    axes[0].set_ylabel(r'$\eta(\beta) = \| \alpha \|_1$', fontsize=20, labelpad=10)
-    axes[0].set_title('L-curve', fontsize=22)
-    axes[0].tick_params(axis='both', which='major', labelsize=20)
-    axes[0].grid(True)
+        axes[0].plot(np.log(rho), np.log(eta), 'ko', linewidth=2, markersize=8)
+        axes[0].axvline(np.log(rho[idx_max_curv]), color='r', linestyle='--', linewidth=2)
+        axes[0].axhline(np.log(eta[idx_max_curv]), color='r', linestyle='--', linewidth=2)
+        axes[0].set_xlabel(r'$\rho(\beta) = \| \hat{\mathbf{y}} - \mathbf{\Phi}\alpha \|_2$', fontsize=20, labelpad=10)
+        axes[0].set_ylabel(r'$\eta(\beta) = \| \alpha \|_1$', fontsize=20, labelpad=10)
+        axes[0].set_title('L-curve', fontsize=22)
+        axes[0].tick_params(axis='both', which='major', labelsize=20)
+        axes[0].grid(True)
 
-    axes[1].semilogx(beta_set, Jcurve, 'ko', linewidth=2, markersize=8)
-    axes[1].set_xlabel(r'$\beta$', fontsize=20, labelpad=10)
-    axes[1].set_ylabel(r'$\mathcal{J}(\beta)$', fontsize=20, labelpad=10)
-    axes[1].set_title('Curvature Function', fontsize=22)
-    axes[1].tick_params(axis='both', which='major', labelsize=20)
-    axes[1].grid(True)
+        axes[1].semilogx(beta_set, Jcurve, 'ko', linewidth=2, markersize=8)
+        axes[1].set_xlabel(r'$\beta$', fontsize=20, labelpad=10)
+        axes[1].set_ylabel(r'$\mathcal{J}(\beta)$', fontsize=20, labelpad=10)
+        axes[1].set_title('Curvature Function', fontsize=22)
+        axes[1].tick_params(axis='both', which='major', labelsize=20)
+        axes[1].grid(True)
 
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+        plt.show()
 
     return beta_star, Jcurve
 
 
 # %%
-def ista(image, mask, Sk, beta, epsilon, max_iterations=15 ):
+def ista(image, mask, Sk, beta, epsilon, max_iterations=15, f_verbose=False, f_plot=False ):
 
     # Initialize solution vector 
     image = mask*image
@@ -363,10 +365,12 @@ def ista(image, mask, Sk, beta, epsilon, max_iterations=15 ):
         diff_image_new = mask * (image - rec_image_new)
         res_norm = np.linalg.norm(diff_image_new.ravel(), 2)  # || diff_image ||_2
 
-        print(f'Iteration no. {its}/{max_iterations}, res_norm: {res_norm}')
+        if f_verbose:
+            print(f'Iteration no. {its}/{max_iterations}, res_norm: {res_norm}')
 
-    print('Interpolating image from thresholded coefficients...')
-    print('\n---------------- INTERPOLATION DONE! ----------------\n')
+    if f_verbose:
+        print('Interpolating image from thresholded coefficients...')
+        print('\n---------------- INTERPOLATION DONE! ----------------\n')
 
     return alpha
 
@@ -604,7 +608,7 @@ def calculate_MAC(y_tru, y_est, fs):
 
 # %%
 
-def perforMetrics(image, image_recov, image_under, fs, u, dx, room):
+def perforMetrics(image, image_recov, image_under, fs, u, dx, room, f_plot=False):
     # PERFORMETRICS Assessment function with performance metrics and figures
     
     T, M = image.shape
@@ -615,71 +619,71 @@ def perforMetrics(image, image_recov, image_under, fs, u, dx, room):
     t_idxs = np.arange(min( T, 128 ))
     XX, TT = np.meshgrid(dx * np.arange(M), 1000 * (t_idxs) / fs)
 
-    # plot image results
-    aux = image[t_idxs, :]
-    zscale = [np.min(np.real(aux)), np.max(np.real(aux))]
-    fig, axs = plt.subplots(1, 4, figsize=(20, 5))
-
-    img0 = axs[0].imshow(image_under[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
-    axs[0].set_title('Under-sampled', fontsize=18)
-    axs[0].set_xlabel('$x$ (m)', fontsize=18)
-    axs[0].set_ylabel('$t$ (ms)', fontsize=18)
-    img0.set_clim(zscale)
-
-    img1 = axs[1].imshow(image_linear[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
-    axs[1].set_title('Linear int.', fontsize=18)
-    axs[1].set_xlabel('$x$ (m)', fontsize=18)
-    axs[1].set_ylabel('$t$ (ms)', fontsize=18)
-    img1.set_clim(zscale)
-
-    img2 = axs[2].imshow(image_recov[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
-    axs[2].set_title('Diccionary', fontsize=18)
-    axs[2].set_xlabel('$x$ (m)', fontsize=18)
-    axs[2].set_ylabel('$t$ (ms)', fontsize=18)
-    img2.set_clim(zscale)
-
-    img3 = axs[3].imshow(image[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
-    axs[3].set_title('Reference', fontsize=18)
-    axs[3].set_xlabel('$x$ (m)', fontsize=18)
-    axs[3].set_ylabel('$t$ (ms)', fontsize=18)
-    img3.set_clim(zscale)
-
-    plt.suptitle(room)
-    plt.show()
-
-
     NMSE_lin = calculate_NMSE(image, image_linear)
     NMSE_nlin = calculate_NMSE(image, image_recov)
     frqMAC, MAC_lin = calculate_MAC(image, image_linear, fs)
     _, MAC_nlin = calculate_MAC(image, image_recov, fs)
 
-
-    plt.figure(figsize=(14, 6))
-    plt.subplot(1, 2, 1)
-    plt.plot(frqMAC, MAC_lin, color=[0.38, 0.38, 0.38], linewidth=2)
-    plt.xlabel('$f$ (Hz)', fontsize=15)
-    plt.ylabel('MAC', fontsize=15)
-    plt.ylim([0, 1])
-    plt.xlim([0, fs / 2])
-    plt.axvline(x=fs / (2 * u), color='r', linestyle='--', linewidth=2)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.title('Linear')
-
-    plt.subplot(1, 2, 2)
-    plt.plot(frqMAC, MAC_nlin, color=[0.38, 0.38, 0.38], linewidth=2)
-    plt.xlabel('$f$ (Hz)', fontsize=15)
-    plt.ylabel('MAC', fontsize=15)
-    plt.ylim([0, 1])
-    plt.xlim([0, fs / 2])
-    plt.axvline(x=fs / (2 * u), color='r', linestyle='--', linewidth=2)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.title('Multiscale Dict')
-
-    plt.show()
-
     # Arrange outputs
     NMSE_nlin = [NMSE_lin, NMSE_nlin]
     MAC = [MAC_lin, MAC_nlin]
+
+
+    if f_plot:
+        # plot image results
+        aux = image[t_idxs, :]
+        zscale = [np.min(np.real(aux)), np.max(np.real(aux))]
+        fig, axs = plt.subplots(1, 4, figsize=(20, 5))
+
+        img0 = axs[0].imshow(image_under[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
+        axs[0].set_title('Under-sampled', fontsize=18)
+        axs[0].set_xlabel('$x$ (m)', fontsize=18)
+        axs[0].set_ylabel('$t$ (ms)', fontsize=18)
+        img0.set_clim(zscale)
+
+        img1 = axs[1].imshow(image_linear[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
+        axs[1].set_title('Linear int.', fontsize=18)
+        axs[1].set_xlabel('$x$ (m)', fontsize=18)
+        axs[1].set_ylabel('$t$ (ms)', fontsize=18)
+        img1.set_clim(zscale)
+
+        img2 = axs[2].imshow(image_recov[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
+        axs[2].set_title('Diccionary', fontsize=18)
+        axs[2].set_xlabel('$x$ (m)', fontsize=18)
+        axs[2].set_ylabel('$t$ (ms)', fontsize=18)
+        img2.set_clim(zscale)
+
+        img3 = axs[3].imshow(image[t_idxs, :], aspect='auto', cmap='gray', extent=[XX.min(), XX.max(), TT.max(), TT.min()])
+        axs[3].set_title('Reference', fontsize=18)
+        axs[3].set_xlabel('$x$ (m)', fontsize=18)
+        axs[3].set_ylabel('$t$ (ms)', fontsize=18)
+        img3.set_clim(zscale)
+
+        plt.suptitle(room)
+        plt.show()
+
+        plt.figure(figsize=(14, 6))
+        plt.subplot(1, 2, 1)
+        plt.plot(frqMAC, MAC_lin, color=[0.38, 0.38, 0.38], linewidth=2)
+        plt.xlabel('$f$ (Hz)', fontsize=15)
+        plt.ylabel('MAC', fontsize=15)
+        plt.ylim([0, 1])
+        plt.xlim([0, fs / 2])
+        plt.axvline(x=fs / (2 * u), color='r', linestyle='--', linewidth=2)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title('Linear')
+
+        plt.subplot(1, 2, 2)
+        plt.plot(frqMAC, MAC_nlin, color=[0.38, 0.38, 0.38], linewidth=2)
+        plt.xlabel('$f$ (Hz)', fontsize=15)
+        plt.ylabel('MAC', fontsize=15)
+        plt.ylim([0, 1])
+        plt.xlim([0, fs / 2])
+        plt.axvline(x=fs / (2 * u), color='r', linestyle='--', linewidth=2)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+        plt.title('Multiscale Dict')
+        plt.show()
 
     return NMSE_nlin, MAC, frqMAC
 
