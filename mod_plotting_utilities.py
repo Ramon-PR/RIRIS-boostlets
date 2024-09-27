@@ -39,7 +39,7 @@ def plot_array_images(array, num_cols=5):
 
 def plot_ls_images(images, titles):
 
-    images = [np.abs(im) for im in images if im.dtype == "complex128"]
+    images = [np.abs(im) if im.dtype == "complex128" else im for im in images]
 
     fig, ax = plt.subplots(1, len(images), figsize=(18, 6))
     for i in range(len(images)):
