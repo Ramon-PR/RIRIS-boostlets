@@ -336,6 +336,9 @@ class Boostlet_syst:
         self.dt = dt
         self.cs = cs
 
+        self.n_v_thetas = n_v_thetas
+        self.n_h_thetas = n_h_thetas  
+
         self.base_v = base_v
         self.base_h = base_h
 
@@ -452,7 +455,7 @@ class Boostlet_syst:
     def get_axis(self):
         return self.om, self.k
     
-    def save_dict(self):
+    def save_dict(self, folder=".saved_dicts/"):
         # Get boostlet dictionary
         Psi = self.get_boostlet_dict()
 
@@ -468,21 +471,17 @@ class Boostlet_syst:
         f"hor. base: {self.base_h}"
         }
 
-        folder = "./dependencies/basisFunctions/boostlets/"
-        file = rf"dict_BS_m_{self.M}_n_{self.N}_hsc_{self.max_sc_h}_vsc_{self.max_sc_v}_thV_{len(self.v_thetas)}_thH_{len(self.h_thetas)}.mat"
+        # file = rf"dict_BS_m_{self.M}_n_{self.N}_hsc_{self.max_sc_h}_vsc_{self.max_sc_v}_thV_{len(self.v_thetas)}_thH_{len(self.h_thetas)}.mat"
+        file = rf"BS_m_{self.M}_n_{self.N}_vsc_{self.max_sc_v}_hsc_{self.max_sc_h}" \
+               rf"_bases_{self.base_v}_{self.base_h}" \
+               rf"_thV_{self.n_v_thetas}_thH_{self.n_h_thetas}.mat"
         file_path = os.path.join(folder, file)
 
         print("Saving dictionary in \n"
                f"{file_path} \n" )
         print(mdic['label'])
 
-        # Get file's directory
-        directory = os.path.dirname(file_path)
-
-        # create file's directory
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
+        os.makedirs(folder, exist_ok=True)
         # Save 
         savemat(file_path, mdic)
 

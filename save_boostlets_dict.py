@@ -31,33 +31,10 @@ def main(cfg: DictConfig):
     Psi = BS.get_boostlet_dict()
 
     # Check if saving parameters are provided
-    if all(key in cfg.saving_param for key in ["folder", "file"]):
-        folder, file = cfg.saving_param.folder, cfg.saving_param.file
-        file_path = os.path.join(folder, file)
-
-        # Create dictionary with Psi and descriptive label
-        mdic = {
-            "Psi": Psi,
-            "label": (
-                f"Boostlets with: {BS.max_sc_v} vertical scales, {BS.max_sc_h} horizontal scales, "
-                f"{len(BS.v_thetas)} vertical angles, {len(BS.h_thetas)} horizontal angles\n"
-                f"Support factors - Vertical base: {BS.base_v}, Horizontal base: {BS.base_h}"
-            )
-        }
-
-        print(f"Saving dictionary in: {file_path}\n{mdic['label']}")
-
-        # Create output directory if necessary
-        os.makedirs(folder, exist_ok=True)
-
-        # Try saving the .mat file
-        try:
-            savemat(file_path, mdic)
-            print("Dictionary saved successfully.")
-        except Exception as e:
-            print(f"An error occurred while saving: {e}")
+    if "folder" in cfg.saving_param:
+        folder = cfg.saving_param.folder
+        BS.save_dict(folder=folder)
     else:
-        print("Saving parameters not provided. Using default save method.")
         BS.save_dict()
 
 if __name__ == "__main__":
