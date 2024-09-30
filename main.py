@@ -5,12 +5,15 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import hydra
+# from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
 from boostlets_mod import Boostlet_syst
 from mod_plotting_utilities import plot_array_images
 from mod_RIRIS_func import load_DB_ZEA, rand_downsamp_RIR, ImageOps, jitter_downsamp_RIR, load_sk
 from mod_RIRIS_func import computePareto, ista, iffst, linear_interpolation_fft, perforMetrics
+from scipy.io import savemat
+
 
 
 # %% [markdown]
@@ -22,6 +25,7 @@ def main(cfg: DictConfig):
     # ------------- Inputs dictionary -----------------------------
     folder_dict = cfg.saving_param.folder
     file_dict = cfg.saving_param.file
+    rm_sk_ids = cfg.rm_sk_ids # ls with removed elements from the dict
     # -------------------------------------------------------------
     
     # ----------------- Image ------------------------------------- 
@@ -58,11 +62,10 @@ def main(cfg: DictConfig):
     # -------------------------------------------------------------
 
     # ----------------- Outputs -----------------------------------
-    output_folder = cfg.outputs.images.folder
-    fname_images_reconst = cfg.outputs.images.file
-
+    # output_folder = cfg.outputs.images.folder
+    # fname_images_reconst = cfg.outputs.images.file
     # Create output directory if it doesn't exist
-    os.makedirs(output_folder, exist_ok=True)
+    # os.makedirs(output_folder, exist_ok=True)
     # -------------------------------------------------------------
 
 
@@ -97,6 +100,8 @@ def main(cfg: DictConfig):
 
     # %% [markdown]
     # ## Remove elements from dict
+    print(f"ids removed: {rm_sk_ids}")
+    Sk = np.delete(Sk, rm_sk_ids, axis=2)
 
     # ----------------------------------------------------
     # Pareto
@@ -122,20 +127,49 @@ def main(cfg: DictConfig):
 
     # %% [markdown]
     # ## Visual results
+    # % OUTPUTS in a dictionary Matlab compatible:
+
+    
+    if cfg.outputs.performance.f_write_dict:   
+        perf_outputs = {
+            "dic_name": file_dict,
+            "rm_sk_ids": rm_sk_ids,
+            "beta_star": beta_star,
+            "NMSE_lin": NMSE_nlin[0],
+            "NMSE": NMSE_nlin[1],
+            "frqMAC": frqMAC,
+            "MAC_lin": MAC[0],
+            "MAC": MAC[1],
+            "Jcurve": Jcurve,
+            }
+        file_path = os.path.join(cfg.outputs.performance.folder, cfg.outputs.performance.file)
+        print("Saving performance file")
+        os.makedirs(cfg.outputs.performance.folder, exist_ok=True)
+        savemat(file_path, perf_outputs)
+    
+    if cfg.outputs.images.f_write_dict:        
+        image_outputs = {
+            "orig_image": orig_image,
+            "masked_image": (orig_image*mask0),
+            "final_image": final_image,
+            "image_lin": image_lin,
+        }
+        file_path = os.path.join(cfg.outputs.images.folder, cfg.outputs.images.file_mat)
+        print("Saving images file")
+        os.makedirs(cfg.outputs.images.folder, exist_ok=True)
+        savemat(file_path, image_outputs)
 
     images = [orig_image[:100,:], (orig_image*mask0)[:100,:], final_image[:100,:], image_lin[:100,:]]
     titles = ['Original Image', 'Masked Image', 'Final reconst image', "Linear reconst"]
-
     fig, ax = plt.subplots(1, len(images), figsize=(18, 6))
     for i in range(len(images)):
         ax[i].imshow(images[i])
         ax[i].set_title(titles[i])
         ax[i].axis('off')
-    # Save the figure
-    output_image_path = os.path.join(output_folder, f"{fname_images_reconst}.png")
+    file_path = os.path.join(cfg.outputs.images.folder, cfg.outputs.images.file_im)
     plt.tight_layout()
-    plt.savefig(output_image_path)
-    print(f"Image saved to: {output_image_path}")
+    plt.savefig(file_path)
+
 
 if __name__ == "__main__":
     main()
