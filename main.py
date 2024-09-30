@@ -71,6 +71,7 @@ def main(cfg: DictConfig):
         image=image, image_recov=image_recov, image_under=image * mask,
         fs=cfg.sampling.fs, u=u, dx=cfg.sampling.dx, room=room
     )
+    print(f"NMSE: lin = {NMSE_nlin[0]} / boostlet = {NMSE_nlin[1]}")
 
     # Save performance outputs
     if cfg.outputs.performance.f_write_dict:
