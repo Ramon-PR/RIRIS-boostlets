@@ -448,24 +448,27 @@ def jitter_downsamp_RIR(shape, ratio_t=1, ratio_x=0.5):
     return mask_X, mask_T
 
 
-def load_sk(folder, file, build_dict):
-
+def load_sk(folder, file, build_dict=None):
+    # Construct the file path
     file_path = os.path.join(folder, file)
 
+    # If the file exists, load it
     if os.path.exists(file_path):
         print("Loading dictionary")
         print(file_path)
         Sk = sio.loadmat(file_path)['Psi']
-
-    elif build_dict['Sk_type']=="boostlet":
-        N=build_dict["N"]
-        S=build_dict["S"]
-        n_thetas=build_dict["n_thetas"]
+    # If build_dict is not None and dictionary type is specified
+    elif build_dict is not None and build_dict.get('Sk_type') == "boostlet":
+        N = build_dict["N"]
+        S = build_dict["S"]
+        n_thetas = build_dict["n_thetas"]
 
         print(f"Generating boostlet dictionary. N={N}, S={S}, n_thetas={n_thetas}")
         a_grid = 2 ** np.arange(S)
         theta_grid = np.linspace(-np.pi/2, np.pi/2, n_thetas)
         Sk = get_boostlets_dict(N, a_grid, theta_grid)
+    else:
+        raise ValueError("File not found and build_dict is not properly defined to generate the dictionary.")
 
     return Sk
 
