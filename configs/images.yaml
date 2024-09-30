@@ -1,0 +1,21 @@
+defaults:
+  - _self_
+
+ImOps:
+  # subimage. Index of first time sample
+  Tstart: 0
+
+  # Size of image to extract 
+  M0: 100 # number of rows
+  N0: 100 # number of cols
+
+  # Image parameters
+  folder: "./dependencies/measurementData"
+  room: "Balder"
+  ratio_mics: 0.5
+  extrap_mode: "extrapolate"  # or "pad"
+
+sampling:
+  dx: 0.03
+  fs: 11250
+  cs: 340

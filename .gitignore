@@ -1,3 +1,6 @@
 **/__pycache__/
 **/dependencies/
 **/*.mat
+**/outputs/
+**/multirun/
+**/*.png
