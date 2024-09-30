@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_array_images(array, num_cols=5):
+def plot_array_images(array, num_cols=5, cmap='gray'):
 
     if type(array) == list:
         array = np.stack(array, axis=2)
@@ -20,7 +20,7 @@ def plot_array_images(array, num_cols=5):
         ax = axs[row, col]
         # ax.imshow(array[:, :, i], cmap='gray')
         # c = ax.pcolor(array[:, :, i], cmap='gray')
-        c = ax.pcolor(array[:, :, i], cmap='jet')
+        c = ax.pcolor(array[:, :, i], cmap=cmap)
         cbar = fig.colorbar(c, ax=ax, orientation='vertical', format='%1.1f')
         # cbar.ax.set_yticklabels(['< -1', '0', '> 1'])  # vertically oriented colorbar
 
