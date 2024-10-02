@@ -18,12 +18,8 @@ def plot_array_images(array, num_cols=5, cmap='gray'):
         col = i % num_cols
 
         ax = axs[row, col]
-        # ax.imshow(array[:, :, i], cmap='gray')
-        # c = ax.pcolor(array[:, :, i], cmap='gray')
         c = ax.pcolor(array[:, :, i], cmap=cmap)
         cbar = fig.colorbar(c, ax=ax, orientation='vertical', format='%1.1f')
-        # cbar.ax.set_yticklabels(['< -1', '0', '> 1'])  # vertically oriented colorbar
-
         ax.set_title(f'Index {i}')
         ax.axis('off')
 
@@ -43,7 +39,7 @@ def plot_ls_images(images, titles):
 
     fig, ax = plt.subplots(1, len(images), figsize=(18, 6))
     for i in range(len(images)):
-        ax[i].imshow(images[i])
+        ax[i].pcolor(images[i])
         ax[i].set_title(titles[i])
         ax[i].axis('off')
     plt.tight_layout()
