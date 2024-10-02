@@ -490,27 +490,34 @@ class Boostlet_syst:
 # Indexes of the dict to eliminate. Based on convolutions with the mask
 # ------------------------------------------------------------------------
 
-def indexs_max_conv_mask_dict(mask, Sk):
+def indexs_max_conv_mask_dict(mask, Sk, f_plot=False):
     F2d_im = np.fft.fft2(mask) 
     F2d_im = np.fft.fftshift(F2d_im) # order coefs from negative to positive in axes=(0,1)
-    Specs = Sk * F2d_im[:, :, np.newaxis].conj()
+    Specs = Sk * F2d_im[:, :, np.newaxis]
 
     B = np.max( abs(Specs), axis=(0,1)) 
     # Encuentra los índices de los elementos que no son cero
     nonzero_indices = np.where(B != 0)[0]
     # Ordena los índices en base a los valores correspondientes en B en orden descendente
     sorted_indices = nonzero_indices[np.argsort(-B[nonzero_indices])]
+    idxs = np.arange(B.shape[0])
 
-    return sorted_indices
+    if f_plot:
+        fig, ax = plt.subplots()
+        ax.bar(idxs, B)
+        ax.set_yscale('log')
+        plt.show()
+
+    return sorted_indices, B
 
 
-def indexs_max_conv_mask_maskedDict(mask, Sk):
+def indexs_max_conv_mask_maskedDict(mask, Sk, f_plot=False):
     Fproyection = np.fft.ifftshift( Sk*Sk , axes=(0,1))  # no ifftshift in 3rd axis
     phys_Psi2 = np.fft.ifft2(Fproyection, axes=(0, 1)).real  # by default, fft2 operates in the last 2 axes
     phys_Psi2 = np.fft.fftshift(phys_Psi2, axes=(0,1))
 
     MSk = mask[...,np.newaxis] * phys_Psi2 # masked physical dict kernels
-    Specs = np.fft.fft2(mask)[...,np.newaxis] * np.fft.fft2(MSk, axes=(0, 1)).conj() # conv -> mult in Fou space
+    Specs = np.fft.fft2(mask)[...,np.newaxis] * np.fft.fft2(MSk, axes=(0, 1)) # conv -> mult in Fou space
 
     B = np.max( abs(Specs), axis=(0,1)) 
     # Encuentra los índices de los elementos que no son cero
@@ -518,7 +525,24 @@ def indexs_max_conv_mask_maskedDict(mask, Sk):
     # Ordena los índices en base a los valores correspondientes en B en orden descendente
     sorted_indices = nonzero_indices[np.argsort(-B[nonzero_indices])]
 
-    return sorted_indices
+    idxs = np.arange(B.shape[0])
+
+    if f_plot:
+        fig, ax = plt.subplots()
+        ax.bar(idxs, B)
+        ax.set_yscale('log')
+        plt.show()
+
+    return sorted_indices, B
+
+# -------------------------------------------------
+# Dictionary in physical space
+# -------------------------------------------------
+def sk_to_phys(Sk):        
+    Fproyection = np.fft.ifftshift( Sk*Sk , axes=(0,1))  # no ifftshift in 3rd axis
+    phys_Psi2 = np.fft.ifft2(Fproyection, axes=(0, 1)).real  # by default, fft2 operates in the last 2 axes
+    phys_Psi2 = np.fft.fftshift(phys_Psi2, axes=(0,1))
+    return phys_Psi2
 
 # -------------------------------------------------
 # Difeomorfismo
