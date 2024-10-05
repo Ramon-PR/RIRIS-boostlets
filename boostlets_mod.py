@@ -246,12 +246,14 @@ class Meyer_system:
 # Theta distribution for Boostlets:
 # ----------------------------------------------------------------------
 def ang_segmento(n_ondas):
-    return np.pi/4/n_ondas
+    # return np.pi/4/n_ondas # No overlapping
+    return np.pi/2/(n_ondas+1) # Overlapping
 
 def ang_centros(n_ondas):
     d_alp = ang_segmento(n_ondas)
     indxs = np.arange(1,n_ondas+1)
-    phis = np.pi/4 - (2*indxs - 1)*d_alp
+    # phis = np.pi/4 - (2*indxs - 1)*d_alp # No overlapping
+    phis = np.pi/4 - (indxs)*d_alp # Overlapping
     return phis
 
 def theta_dist(n_ondas):
