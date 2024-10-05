@@ -426,6 +426,62 @@ class Boostlet_syst:
 
         return Psi 
 
+
+    def get_boostlet_dict2(self):
+        K, OM = np.meshgrid(self.k, self.om)
+        alp_h = ang_segmento(self.n_h_thetas)
+        h_thetas = ang_centros(self.n_h_thetas)
+        
+        Psi = np.zeros((self.M, self.N, self.n_boostlets), dtype=complex)
+        
+        cone = np.abs(K)>np.abs(OM) # horizontal cone
+        count=1
+        # Cono horizontal
+        for isc in range(self.max_sc_h + 1):
+            for theta_j in h_thetas:
+                Ad, Th = diffeo2_hor_cone(k=K, om=OM)
+                gamma = (Th - theta_j)/alp_h # makes a cone ang=alp_h around theta_j with values [-1,1]
+                Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(Th)*cone
+                # Phi /= np.max(np.abs(Phi)) 
+                Psi[:,:,count] = Phi
+                count += 1
+
+        
+        alp_v = ang_segmento(self.n_v_thetas)
+        v_thetas = ang_centros(self.n_v_thetas)
+        cone = np.abs(OM)>np.abs(K)  # vertical cone
+        
+        # Cono vertical
+        for isc in range(self.max_sc_v + 1):
+            for theta_j in v_thetas:
+                Ad, Th = diffeo2_hor_cone(k=K, om=OM)
+                gamma = (Th - theta_j)/alp_v
+                Phi = self.ms_v.psi_1(Ad, scale=isc)*self.scaling_fun(Th)*cone
+                # Phi /= np.max(np.abs(Phi)) 
+                Psi[:,:,count] = Phi
+                count += 1
+
+        # Scaling function
+        Phi = np.sqrt(1 - np.sum(Psi**2, axis=2))
+        Psi[:,:,0] = Phi
+
+
+        # # Check sum of squares for all scales
+        # Phi = np.sum(Psi**2, axis=2)
+        # # Add the scaling function to the dictionary to complete R2
+        # mask = ~(np.abs(Phi) > 0.0)
+        # Psi[:,:,0] = np.ones_like(Phi)*mask
+
+        # # Check sum of squares for all scales
+        # Phi = np.sum(Psi**2, axis=2)
+        # # Divide each scale by the sqrt of the sum, to ensure Parseval
+        # Psi /= np.sqrt(Phi)[:, :, np.newaxis]
+
+
+
+        return Psi  
+
+
     def plot_dict_boostlets(self):
         Psi = self.get_boostlet_dict()
         plot_array_images(Psi, num_cols=5)
@@ -433,7 +489,7 @@ class Boostlet_syst:
         
     def gen_boostlet_h(self, theta, isc):
         """
-        En vez de usar a, uso MeyerSystem 
+        Instead of using dilation a, I use MeyerSystem 
         """
         K, OM = np.meshgrid(self.k, self.om)
         K_b, OM_b = boost_points(om=OM, k=K, a=1, theta=theta)
@@ -444,9 +500,10 @@ class Boostlet_syst:
         return Phi #, K_b, OM_b
     
 
-    def gen_boostlet_tan_h(self, theta, isc):
+    def gen_boostlet2_h(self, theta, isc):
         """
         En vez de usar a, uso MeyerSystem 
+        Use of tan instead of tanh in the cone
         """
         K, OM = np.meshgrid(self.k, self.om)        
         Ad, Th = diffeo_hor_cone(k=K, om=OM)
