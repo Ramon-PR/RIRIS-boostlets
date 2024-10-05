@@ -298,7 +298,7 @@ def diffeo_hor_cone(k, om):
 
 # Boostlet in horizontal cone
 # ----------------------------------------------------------------------
-def get_boostlet_h(om, kx, a_i, theta_j, wavelet_fun=meyerWaveletFun, scaling_fun=meyerScalingFun):
+def get_boostlet_h(om, kx, a_i, theta_j, wavelet_fun=psi_1_fou, scaling_fun=psi_2_fou):
     KX_b, OM_b = boost_points(om, kx, a_i, theta_j)
     Ad_h, Th_h = diffeo_hor_cone(k=KX_b, om=OM_b)
     Phi = wavelet_fun(Ad_h)*scaling_fun(Th_h)
@@ -315,7 +315,7 @@ class Boostlet_syst:
                  n_v_scales=1, n_h_scales=1,
                  n_v_thetas=3, n_h_thetas=3,  
                  base_v=0.5, base_h=0.5, 
-                 wavelet_fun=meyerWaveletFun, scaling_fun=meyerScalingFun 
+                 wavelet_fun=psi_1_fou, scaling_fun=psi_2_fou 
                  ) -> None:
         """ 
         M filas
