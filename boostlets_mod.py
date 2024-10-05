@@ -296,6 +296,25 @@ def diffeo_hor_cone(k, om):
     Th[~hor_cone] = 0  # Asignar 0 fuera del cono
 
     return Ad, Th
+
+
+def diffeo2_hor_cone(k, om):
+    """
+    Similar to diffeo_hor_cone, but susbstituting arctanh for arctan
+    """
+    # Crear una máscara para el caso cuando |k| > |om|
+    hor_cone = np.abs(k)>np.abs(om)
+    
+    Ad = np.sqrt(np.abs(k**2 - om**2))*hor_cone
+
+    # Lo que está en el cono horiz lo dejo tal cual el resto lo pongo en 0 (arctanh no quiere 1, o -1)
+    ratio = np.divide(om, k, where=(k != 0))*hor_cone + np.zeros_like(k)*(~hor_cone)
+
+    Th = np.arctan(ratio)  # Calcula Th evitando la división por cero
+    Th[~hor_cone] = 0  # Asignar 0 fuera del cono
+
+    return Ad, Th
+
 # ----------------------------------------------------------------------
 
 # Boostlet in horizontal cone
@@ -424,12 +443,22 @@ class Boostlet_syst:
         Phi /= np.max(np.abs(Phi)) 
         return Phi #, K_b, OM_b
     
+
+    def gen_boostlet_tan_h(self, theta, isc):
+        """
+        En vez de usar a, uso MeyerSystem 
+        """
+        K, OM = np.meshgrid(self.k, self.om)        
+        Ad, Th = diffeo_hor_cone(k=K, om=OM)
+        Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(Th)
+        Phi /= np.max(np.abs(Phi)) 
+        return Phi #, K_b, OM_b
+
+
     def plot_boostlet(self, itheta, isc):
         Phi = self.gen_boostlet_h(theta=self.h_thetas[itheta], isc=isc)
         fig, ax = plt.subplots(1,1)
         ax.contourf(self.k, self.om, Phi)
-
-
 
     def plot_psi_1(self, scale):
         psi_v = self.ms_v.psi_1(self.om, scale)
