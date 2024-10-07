@@ -7,12 +7,12 @@ BS:
   N: 128
 
   # Vertical cone 
-  n_v_scales: 10 # number of scales in the hyperbolaes
+  n_v_scales: 2 # number of scales in the hyperbolaes
   base_v: 0.5    # support of scale: psi has ones in: [base_v^(S+1), base_v^(S)]
   n_v_thetas: 3  # number of angles to divide the hyperbolaes
 
   # Horizontal cone 
-  n_h_scales: 10 # number of scales in the hyperbolaes
+  n_h_scales: 2 # number of scales in the hyperbolaes
   base_h: 0.5    # support of scale: psi has ones in: [base_h^(S+1), base_h^(S)]
   n_h_thetas: 3  # number of angles to divide the hyperbolaes
 
@@ -22,6 +22,6 @@ BS:
   cs: 340
 
 saving_param:
-  folder: saved_dicts
-  # file:
+  folder: saved_dicts/tan_dicts
   file: BS_m_${BS.M}_n_${BS.N}_vsc_${BS.n_v_scales}_hsc_${BS.n_h_scales}_bases_${BS.base_v}_${BS.base_h}_thV_${BS.n_v_thetas}_thH_${BS.n_h_thetas}.mat
+  dict_type: 2
