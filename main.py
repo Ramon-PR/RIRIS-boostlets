@@ -11,6 +11,8 @@ from mod_RIRIS_func import (
 )
 from scipy.io import savemat
 
+# python ./main.py saving_param.folder=saved_dicts saving_param.file=BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_15_thH_15.mat
+# Check also run_main_multiple_dicts.py
 
 @hydra.main(version_base=None, config_path="./configs", config_name="main")
 def main(cfg: DictConfig):
@@ -84,6 +86,7 @@ def main(cfg: DictConfig):
             "frqMAC": frqMAC,
             "MAC_lin": MAC[0],
             "MAC": MAC[1],
+            "beta_set": beta_set,
             "Jcurve": Jcurve,
         }
         os.makedirs(cfg.outputs.performance.folder, exist_ok=True)
