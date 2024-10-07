@@ -431,8 +431,8 @@ class Boostlet_syst:
         K, OM = np.meshgrid(self.k, self.om)
         alp_h = ang_segmento(self.n_h_thetas)
         h_thetas = ang_centros(self.n_h_thetas)
-        
-        Psi = np.zeros((self.M, self.N, self.n_boostlets), dtype=complex)
+
+        Psi = np.zeros((self.M, self.N, self.n_boostlets), dtype=float)
         
         cone = np.abs(K)>np.abs(OM) # horizontal cone
         count=1
@@ -440,8 +440,8 @@ class Boostlet_syst:
         for isc in range(self.max_sc_h + 1):
             for theta_j in h_thetas:
                 Ad, Th = diffeo2_hor_cone(k=K, om=OM)
-                gamma = (Th - theta_j)/alp_h # makes a cone ang=alp_h around theta_j with values [-1,1]
-                Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(Th)*cone
+                gamma = ((Th - theta_j)/alp_h)*cone  # makes a cone ang=alp_h around theta_j with values [-1,1]
+                Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(gamma)*cone
                 # Phi /= np.max(np.abs(Phi)) 
                 Psi[:,:,count] = Phi
                 count += 1
@@ -454,30 +454,18 @@ class Boostlet_syst:
         # Cono vertical
         for isc in range(self.max_sc_v + 1):
             for theta_j in v_thetas:
-                Ad, Th = diffeo2_hor_cone(k=K, om=OM)
-                gamma = (Th - theta_j)/alp_v
-                Phi = self.ms_v.psi_1(Ad, scale=isc)*self.scaling_fun(Th)*cone
+                Ad, Th = diffeo2_hor_cone(k=OM, om=K)
+                gamma = ((Th - theta_j)/alp_v)*cone
+                Phi = self.ms_v.psi_1(Ad, scale=isc)*self.scaling_fun(gamma)*cone
                 # Phi /= np.max(np.abs(Phi)) 
                 Psi[:,:,count] = Phi
                 count += 1
 
         # Scaling function
-        Phi = np.sqrt(1 - np.sum(Psi**2, axis=2))
-        Psi[:,:,0] = Phi
-
-
-        # # Check sum of squares for all scales
-        # Phi = np.sum(Psi**2, axis=2)
-        # # Add the scaling function to the dictionary to complete R2
-        # mask = ~(np.abs(Phi) > 0.0)
-        # Psi[:,:,0] = np.ones_like(Phi)*mask
-
-        # # Check sum of squares for all scales
-        # Phi = np.sum(Psi**2, axis=2)
-        # # Divide each scale by the sqrt of the sum, to ensure Parseval
-        # Psi /= np.sqrt(Phi)[:, :, np.newaxis]
-
-
+        Phi = np.sum(Psi[:,:,1:]**2, axis=2) # add all boostlets except for scaling func
+        Phi /= np.max(Phi) # Everything should be between 0 and 1 (Use this to avoid 1.0 + noise)
+        # Psi[:,:,0] = np.sqrt(1 - Phi) # scling^2 = 1 - boostlets^2
+        Psi[:,:,0] = np.sqrt(np.where(1 - Phi < 0, 0, 1 - Phi))
 
         return Psi  
 
@@ -543,9 +531,8 @@ class Boostlet_syst:
     def get_axis(self):
         return self.om, self.k
     
-    def save_dict(self, folder=".saved_dicts/"):
-        # Get boostlet dictionary
-        Psi = self.get_boostlet_dict()
+    def save_dict(self, dict, folder=".saved_dicts/"):
+        Psi = dict
 
         # Create a dict with booslets and label fields
         mdic = {"Psi": Psi, 
@@ -572,6 +559,17 @@ class Boostlet_syst:
         os.makedirs(folder, exist_ok=True)
         # Save 
         savemat(file_path, mdic)
+
+    def save_dict_1(self, folder=".saved_dicts/"):
+        # Get boostlet dictionary
+        Psi = self.get_boostlet_dict()
+        self.save_dict(dict=Psi, folder=folder)
+
+    def save_dict_2(self, folder=".saved_dicts/"):
+        # Get boostlet dictionary
+        Psi = self.get_boostlet_dict2()
+        self.save_dict(dict=Psi, folder=folder)
+
 
 
 # ------------------------------------------------------------------------
