@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mod_plotting_utilities import plot_array_images
 from scipy.io import savemat
 import os
+from scipy import stats
 
 # Meyer Functions
 # ---------------
@@ -573,8 +574,46 @@ class Boostlet_syst:
 
 
 # ------------------------------------------------------------------------
-# Indexes of the dict to eliminate. Based on convolutions with the mask
+# Indexes of the dict to eliminate. Based on convolutions with the mask.
+# Note: for the first clear wavefront I have a section of the horizontal cone,
+#       then I can remove elements from horiz & vertical cone.
+#       For the last part where we have wavefronts from all directions,
+#       I have the full vertical cone with spectrum, so I can not erase those dictionaries.
+# To maintain the best outcome, try just erasing the horizontal cone boostlets
 # ------------------------------------------------------------------------
+
+def rm_sk_index_in_horiz_cone(dx, dt, cs, Sk):
+    """
+    Input:
+    dx = Distance between microphones
+    dt = Temporal lag between samples
+    cs = Speed of sound
+    Sk = dictionary of [M,N] Fourier filters. Sk[M, N, P] where P is the number of filters in the dic
+    
+    Output:
+    rm_sk_indxs: indexes of Sk that belong only to the horizontal cone K>OM that can be removed from Sk
+                 for the acoustic reconstruction.
+    """
+    [M, N, P] = Sk.shape
+
+    om = np.fft.fftshift( np.fft.fftfreq(n=M, d=dt) )
+    kx = np.fft.fftshift( np.fft.fftfreq(n=N, d=dx) )
+    k = cs * kx
+
+    K, OM = np.meshgrid(k, om)
+    vcone = np.abs(OM)>=np.abs(K) # vertical cone
+
+    ls_maintain = []
+    for i in range(P):  
+        sk = Sk[:, :, i]
+        proy = np.abs(sk) * vcone
+        ls_maintain.append( np.sum(proy , axis=(0,1)) > 0 )
+
+    ls_remove = [not b for b in ls_maintain] # list with True and False of elements to remove
+    rm_sk_indxs = [i for i, val in enumerate(ls_remove) if val]  # Indexes of elements to remove 
+
+    return rm_sk_indxs
+
 
 def indexs_max_conv_mask_dict(mask, Sk, f_plot=False):
     F2d_im = np.fft.fft2(mask) 
@@ -620,6 +659,100 @@ def indexs_max_conv_mask_maskedDict(mask, Sk, f_plot=False):
         plt.show()
 
     return sorted_indices, B
+
+def sk_with_max_diff_spectrum_due2mask(ratio_mics, orig_image, Sk):
+    """ 
+    Inputs:
+    ratio_mics: ratio of mics taken in the original mask (between 0 and 1)
+    orig_image: image before padding [M0, N0]
+    Sk: dictionary [M, N, n_elements]
+    Outputs:
+    ind: list of indexes of Sk to remove
+    z2: zscore for each element in the dictionary of maxdiff( F_IM_mask - F_IM_mask2)
+    """
+    from mod_RIRIS_func import jitter_downsamp_RIR, ImageOps
+
+    # Get masks for ratio of mics and half of that ratio
+    mask0, _ = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics)
+    mask20, _ = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics/2)
+
+    # Get the extrapolated/padded image
+    imOps = ImageOps(orig_image.shape, mask=mask0, extrap_shape=Sk.shape[:2], mode='pad') 
+    imOps2 = ImageOps(orig_image.shape, mask=mask20, extrap_shape=Sk.shape[:2], mode='pad') 
+    image = imOps.expand_image(orig_image)
+
+    # Get mask for image & mask2 with 1/2 of the microphones which will create more masking noise in Fourier
+    mask = imOps.get_mask(image)
+    mask2 = imOps2.get_mask(image)
+
+    # Transform to Fourier the masked images
+    F_ImM1 = np.fft.fftshift( np.fft.fft2(image*mask) )
+    F_ImM2 = np.fft.fftshift( np.fft.fft2(image*mask2) )
+
+    # Filter Im spectrum with masking noise and 2*masking  noise
+    Sk2 = Sk*Sk # square of each dict (sum(Sk2)=1)
+    filtered_F_ImM1 = np.abs(F_ImM1[:,:,np.newaxis]) * Sk2
+    filtered_F_ImM2 = np.abs(F_ImM2[:,:,np.newaxis]) * Sk2
+
+    # scale the filtered regions
+    filtered_F_ImM1 /= np.max(filtered_F_ImM1)
+    filtered_F_ImM2 /= np.max(filtered_F_ImM2)
+
+    # Difference between filters (I expect it to be greater where there is no spectrum from the image, just from the masking noise)
+    # diff_filters1 = np.mean( (filtered_F_ImM2 - filtered_F_ImM1), axis=(0,1) )
+    diff_filters2 = np.max( (filtered_F_ImM2 - filtered_F_ImM1), axis=(0,1) )
+
+    # List of ind to eliminate, those that are above a threshold
+    z2 = stats.zscore(diff_filters2) 
+    ind = np.where(z2>0)[0]
+    ind = list(ind)
+    
+    # do not remove scaling function (remove 0 from this list)
+    if 0 in ind:
+        ind.remove(0)
+
+    return ind, z2
+
+# def sk_ind2remove(ratio_mics, mask, orig_image, Sk, f_plot=False):
+#     """ 
+#     Inputs:
+#     ratio_mics: ratio of mics taken in the original mask (between 0 and 1)
+    
+#     orig_image: image before padding [M0, N0]
+#     Sk: dictionary [M, N, n_elements]
+#     Outputs:
+#     ind: list of indexes of Sk to remove
+#     z2: zscore for each element in the dictionary of maxdiff( F_IM_mask - F_IM_mask2)
+#     """
+
+#     # mask0, _ = jitter_downsamp_RIR(Sk.shape[:2], ratio_t=1, ratio_x=ratio_mics)
+#     # mask20, _ = jitter_downsamp_RIR(Sk.shape[:2], ratio_t=1, ratio_x=ratio_mics/2)
+
+#     ind1, z1 = sk_with_max_diff_spectrum_due2mask(ratio_mics, orig_image, Sk)
+#     _, max_conv = indexs_max_conv_mask_maskedDict(mask=mask, Sk=Sk)
+#     z2 = stats.zscore(max_conv)
+#     ind2 = np.where(z2>0)[0]
+#     ind2 = list(ind2)
+
+#     if 0 in z2:
+#         ind2.remove(0)
+    
+#     if f_plot:
+#         idx = np.arange(len(z1))
+#         fig, ax = plt.subplots()
+#         ax.plot(idx, z1, 'o-', label='max diff due to masking')
+#         ax.plot(idx, z2, 'o-', label='max conv mask & (masked dict)')
+#         ax.axhline(0, color='black', linestyle='--')
+#         ax.set_xticks(idx)
+#         ax.legend()
+#         ax.set_xlabel("Sk indexes")
+#         ax.set_ylabel("z score")
+#         plt.show()
+
+#     return (ind1 + ind2)
+
+
+
 
 # -------------------------------------------------
 # Dictionary in physical space
