@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import hydra
 from omegaconf import DictConfig
-from boostlets_mod import Boostlet_syst
+from boostlets_mod import Boostlet_syst, rm_sk_index_in_horiz_cone
 from mod_plotting_utilities import plot_array_images
 from mod_RIRIS_func import (
     load_DB_ZEA, jitter_downsamp_RIR, load_sk,
@@ -19,12 +19,16 @@ def main(cfg: DictConfig):
     # Inputs
     folder_dict = cfg.saving_param.folder
     file_dict = cfg.saving_param.file
-    rm_sk_ids = cfg.rm_sk_ids  # List of removed dictionary elements
+    # rm_sk_ids = cfg.rm_sk_ids  # List of removed dictionary elements
     
     # Image parameters
     room = cfg.ImOps.room
     folder = cfg.ImOps.folder
     file_path = os.path.join(folder, cfg.ImOps.get("file", f"{room}RIR.mat"))
+    dx = cfg.sampling.dx
+    fs = cfg.sampling.fs
+    cs = cfg.sampling.cs
+    dt = 1/fs
     
     M0, N0 = cfg.ImOps.M0, cfg.ImOps.N0
     Tstart, Tend = cfg.ImOps.Tstart, cfg.ImOps.Tstart + M0
@@ -53,6 +57,7 @@ def main(cfg: DictConfig):
     mask = imOps.get_mask(image)
 
     # Remove selected elements from dictionary
+    rm_sk_ids = rm_sk_index_in_horiz_cone(dx=dx, dt=dt, cs=cs, Sk=Sk)
     print(f"Removed IDs: {rm_sk_ids}")
     Sk = np.delete(Sk, rm_sk_ids, axis=2)
 
