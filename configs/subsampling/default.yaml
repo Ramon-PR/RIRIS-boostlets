@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+
+ratio_mics: 0.5
+extrap_mode: "pad" 
+

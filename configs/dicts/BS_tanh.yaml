@@ -1,0 +1,16 @@
+# Dictionary Boostlet System
+# Size of filters 
+M: 128
+N: 128
+
+# Vertical cone 
+n_v_scales: 2 # number of scales in the hyperbolaes
+base_v: 0.5    # support of scale: psi has ones in: [base_v^(S+1), base_v^(S)]
+n_v_thetas: 3  # number of angles to divide the hyperbolaes
+
+# Horizontal cone 
+n_h_scales: 2 # number of scales in the hyperbolaes
+base_h: 0.5    # support of scale: psi has ones in: [base_h^(S+1), base_h^(S)]
+n_h_thetas: 3  # number of angles to divide the hyperbolaes
+
+dict_type: 1 # dict_type=1 (tanh distrib) / dict_type=2 (tan distrib) 
