@@ -11,28 +11,27 @@ from mod_RIRIS_func import (
 )
 from scipy.io import savemat
 
-# python ./main.py saving_param.folder=saved_dicts saving_param.file=BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_15_thH_15.mat
+# python ./main.py folder_dict=saved_dicts/tan_dicts file_dict=BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_15_thH_15.mat
 # Check also run_main_multiple_dicts.py
 
 @hydra.main(version_base=None, config_path="./configs", config_name="main")
 def main(cfg: DictConfig):
     # Inputs
-    folder_dict = cfg.saving_param.folder
-    file_dict = cfg.saving_param.file
-    # rm_sk_ids = cfg.rm_sk_ids  # List of removed dictionary elements
+    folder_dict = cfg.folder_dict
+    file_dict = cfg.file_dict
     
     # Image parameters
-    room = cfg.ImOps.room
-    folder = cfg.ImOps.folder
-    file_path = os.path.join(folder, cfg.ImOps.get("file", f"{room}RIR.mat"))
-    dx = cfg.sampling.dx
-    fs = cfg.sampling.fs
-    cs = cfg.sampling.cs
+    room = cfg.database.room
+    folder = cfg.database.folder
+    file_path = os.path.join(folder, cfg.database.get("file", f"{room}RIR.mat"))
+    dx = cfg.database.sampling.dx
+    fs = cfg.database.sampling.fs
+    cs = cfg.database.sampling.cs
     dt = 1/fs
     
-    M0, N0 = cfg.ImOps.M0, cfg.ImOps.N0
-    Tstart, Tend = cfg.ImOps.Tstart, cfg.ImOps.Tstart + M0
-    ratio_mics, extrap_mode = cfg.ImOps.ratio_mics, cfg.ImOps.extrap_mode
+    M0, N0 = cfg.database.M0, cfg.database.N0
+    Tstart, Tend = cfg.database.Tstart, cfg.database.Tstart + M0
+    ratio_mics, extrap_mode = cfg.subsampling.ratio_mics, cfg.subsampling.extrap_mode
     u = round(1 / ratio_mics)
 
     # Pareto & ISTA parameters
@@ -40,12 +39,14 @@ def main(cfg: DictConfig):
     epsilon = cfg.ista.ISTAepsilon
 
     # Load the dictionary and image
+    print(folder_dict)
+    print(file_dict)
     Sk = load_sk(folder=folder_dict, file=file_dict, build_dict=None)
     
-    if not cfg.ImOps.get("file"):
+    if not cfg.get("file_im"): # If not given "file_im" load and select image from full RIR
         full_image = load_DB_ZEA(file_path)[0]
         orig_image = full_image[Tstart:Tend, :N0]
-    else:
+    else: # If we give "file_im" then load the image and its parameters
         orig_image = None
 
     mask0, _ = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics)
@@ -62,7 +63,7 @@ def main(cfg: DictConfig):
     Sk = np.delete(Sk, rm_sk_ids, axis=2)
 
     # Pareto optimization
-    beta_star, Jcurve = computePareto(image, mask, Sk, beta_set)
+    beta_star, Jcurve, rho, eta = computePareto(image, mask, Sk, beta_set, f_Lcurve=True)
 
     # ISTA recovery
     alpha = ista(image, mask, Sk, beta=beta_star, epsilon=epsilon, max_iterations=15)
@@ -70,13 +71,13 @@ def main(cfg: DictConfig):
     final_image = imOps.recover_image(image_recov)
 
     # Linear interpolation
-    image_linear = linear_interpolation_fft(image * mask, dx=cfg.sampling.dx, fs=cfg.sampling.fs, cs=cfg.sampling.cs)
+    image_linear = linear_interpolation_fft(image * mask, dx=dx, fs=fs, cs=cs)
     image_lin = imOps.recover_image(image_linear)
 
     # Performance metrics
     NMSE_nlin, MAC, frqMAC = perforMetrics(
         image=image, image_recov=image_recov, image_under=image * mask,
-        fs=cfg.sampling.fs, u=u, dx=cfg.sampling.dx, room=room
+        fs=fs, u=u, dx=dx, room=room
     )
     print(f"NMSE: lin = {NMSE_nlin[0]} / boostlet = {NMSE_nlin[1]}")
 
@@ -93,6 +94,8 @@ def main(cfg: DictConfig):
             "MAC": MAC[1],
             "beta_set": beta_set,
             "Jcurve": Jcurve,
+            "rho": rho, # ||(im - im*)*mask||_2 (beta_i) Pareto
+            "eta": eta # ||alpha||_1 (beta_i)  Pareto
         }
         os.makedirs(cfg.outputs.performance.folder, exist_ok=True)
         savemat(os.path.join(cfg.outputs.performance.folder, cfg.outputs.performance.file), perf_outputs)

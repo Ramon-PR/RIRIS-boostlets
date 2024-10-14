@@ -1,8 +1,14 @@
 defaults:
+  - database: Balder_T0_M100
+  - subsampling: default
+  - ista: default
   - _self_
-  - boost_sys
-  - images
-  - ista
+
+folder_dict: ./saved_dicts/tan_dicts
+file_dict: BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_3_thH_3.mat
+
+# subsampling:
+#   ratio_mics: 0.1
 
 output_dir: ${hydra:runtime.output_dir}
 
@@ -18,8 +24,3 @@ outputs:
     folder: ${output_dir}/performance
     file: perform.mat
     f_write_dict: True
-
-# indexes of the dict Sk to remove
-rm_sk_ids:
-  - 2
-  - 4

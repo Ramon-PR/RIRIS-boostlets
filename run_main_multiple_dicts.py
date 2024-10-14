@@ -26,7 +26,7 @@ def run_main(cfg: DictConfig):
     # Ejecutar main.py para cada archivo .mat
     for archivo in archivos_mat:
         print(f"Ejecutando main.py con archivo: {archivo}")
-        subprocess.run(["python", "main.py", f"saving_param.folder={folder}", f"saving_param.file={archivo}"])
+        subprocess.run(["python", "main.py", f"folder_dict={folder}", f"file_dict={archivo}"])
 
 if __name__ == "__main__":
     run_main()
