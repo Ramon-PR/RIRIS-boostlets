@@ -1,5 +1,5 @@
 defaults:
-  - database: Balder_T0_M100
+  - database: Balder_T1000_M100
   - subsampling: default
   - ista: default
   - _self_
@@ -7,8 +7,8 @@ defaults:
 folder_dict: ./saved_dicts/tan_dicts
 file_dict: BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_3_thH_3.mat
 
-# subsampling:
-#   ratio_mics: 0.1
+subsampling:
+  ratio_mics: 0.2
 
 output_dir: ${hydra:runtime.output_dir}
 

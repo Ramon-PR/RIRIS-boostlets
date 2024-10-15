@@ -1,0 +1,17 @@
+
+# subimage. Index of first time sample
+Tstart: 0
+
+# Size of image to extract 
+M0: 3600 # number of rows
+N0: 100 # number of cols
+
+# Image parameters
+folder: "./dependencies/measurementData"
+file: "BalderRIR.mat"
+room: "Balder"
+
+sampling:
+  dx: 0.03
+  fs: 11250
+  cs: 340
