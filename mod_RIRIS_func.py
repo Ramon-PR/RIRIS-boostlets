@@ -263,7 +263,7 @@ def common_operations(image, mask, Sk, alpha, threshold):
 
 # %%
 
-def computePareto(image, mask, Sk, beta_set, f_verbose=False, f_plot=False):
+def computePareto(image, mask, Sk, beta_set, f_verbose=False, f_plot=False, f_Lcurve=False):
     from scipy.interpolate import splrep, splev, splder
     import matplotlib.pyplot as plt
 
@@ -328,7 +328,10 @@ def computePareto(image, mask, Sk, beta_set, f_verbose=False, f_plot=False):
         plt.tight_layout()
         plt.show()
 
-    return beta_star, Jcurve
+    if f_Lcurve:
+        return beta_star, Jcurve, rho, eta
+    else:
+        return beta_star, Jcurve
 
 
 # %%
