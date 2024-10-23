@@ -10,7 +10,10 @@ file_dict: BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_3_thH_3.mat
 subsampling:
   ratio_mics: 0.2
 
-output_dir: ${hydra:runtime.output_dir}
+# output_dir: ${hydra:runtime.output_dir}
+folder_struct: rm_${subsampling.ratio_mics}/T_${database.Tstart}_M0_${database.M0}
+output_dir: outputs/${folder_struct}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+
 
 outputs:
   images:

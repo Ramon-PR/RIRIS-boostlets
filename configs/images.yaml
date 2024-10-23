@@ -13,7 +13,8 @@ ImOps:
   folder: "./dependencies/measurementData"
   room: "Balder"
   ratio_mics: 0.5
-  extrap_mode: "extrapolate"  # or "pad"
+  # extrap_mode: "extrapolate"  # or "pad"
+  extrap_mode: "pad"  # or "pad"
 
 sampling:
   dx: 0.03
