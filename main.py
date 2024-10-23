@@ -7,7 +7,7 @@ from boostlets_mod import Boostlet_syst, rm_sk_index_in_horiz_cone
 from mod_plotting_utilities import plot_array_images
 from mod_RIRIS_func import (
     load_DB_ZEA, jitter_downsamp_RIR, load_sk,
-    computePareto, ista, iffst, linear_interpolation_fft, perforMetrics, ImageOps
+    computePareto, ista, iffst, linear_interpolation_fft, perforMetrics, ImageOps, ffst,
 )
 from scipy.io import savemat
 
@@ -81,6 +81,12 @@ def main(cfg: DictConfig):
     )
     print(f"NMSE: lin = {NMSE_nlin[0]} / boostlet = {NMSE_nlin[1]}")
 
+    # Sparsity
+    alpha0 = ffst(image, Sk)
+    non_zero_FIm = np.sum(np.abs(np.fft.fft2(image).flatten())>0)
+    non_zero_alpha0 = np.sum(np.abs(alpha0.flatten())>0)
+    non_zero_alpha = np.sum(np.abs(alpha.flatten())>0)
+
     # Save performance outputs
     if cfg.outputs.performance.f_write_dict:
         perf_outputs = {
@@ -95,7 +101,10 @@ def main(cfg: DictConfig):
             "beta_set": beta_set,
             "Jcurve": Jcurve,
             "rho": rho, # ||(im - im*)*mask||_2 (beta_i) Pareto
-            "eta": eta # ||alpha||_1 (beta_i)  Pareto
+            "eta": eta, # ||alpha||_1 (beta_i)  Pareto
+            "non_zero_FIm": non_zero_FIm, # Sparsity factors
+            "non_zero_alpha0": non_zero_alpha0, # Sparsity factors
+            "non_zero_alpha": non_zero_alpha, # Sparsity factors
         }
         os.makedirs(cfg.outputs.performance.folder, exist_ok=True)
         savemat(os.path.join(cfg.outputs.performance.folder, cfg.outputs.performance.file), perf_outputs)
@@ -112,10 +121,10 @@ def main(cfg: DictConfig):
         savemat(os.path.join(cfg.outputs.images.folder, cfg.outputs.images.file_mat), image_outputs)
 
     # Visualize results
-    images = [orig_image[:100, :], (orig_image * mask0)[:100, :], final_image[:100, :], image_lin[:100, :]]
-    titles = ['Original Image', 'Masked Image', 'Reconstructed Image', 'Linear Reconstruction']
+    images = [(orig_image*mask0)[:100, :], image_lin[:100, :], final_image[:100, :], orig_image[:100, :]]
+    titles = ['Masked Image', "Linear reconst", 'Final reconst image', 'Original Image']
+
     fig, ax = plt.subplots(1, len(images), figsize=(18, 6))
-    
     for i, img in enumerate(images):
         ax[i].imshow(img)
         ax[i].set_title(titles[i])
