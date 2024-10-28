@@ -438,12 +438,11 @@ class Boostlet_syst:
         cone = np.abs(K)>np.abs(OM) # horizontal cone
         count=1
         # Cono horizontal
+        Ad, Th = diffeo2_hor_cone(k=K, om=OM)
         for isc in range(self.max_sc_h + 1):
             for theta_j in h_thetas:
-                Ad, Th = diffeo2_hor_cone(k=K, om=OM)
                 gamma = ((Th - theta_j)/alp_h)*cone  # makes a cone ang=alp_h around theta_j with values [-1,1]
                 Phi = self.ms_h.psi_1(Ad, scale=isc)*self.scaling_fun(gamma)*cone
-                # Phi /= np.max(np.abs(Phi)) 
                 Psi[:,:,count] = Phi
                 count += 1
 
@@ -453,12 +452,11 @@ class Boostlet_syst:
         cone = np.abs(OM)>np.abs(K)  # vertical cone
         
         # Cono vertical
+        Ad, Th = diffeo2_hor_cone(k=OM, om=K)
         for isc in range(self.max_sc_v + 1):
             for theta_j in v_thetas:
-                Ad, Th = diffeo2_hor_cone(k=OM, om=K)
                 gamma = ((Th - theta_j)/alp_v)*cone
                 Phi = self.ms_v.psi_1(Ad, scale=isc)*self.scaling_fun(gamma)*cone
-                # Phi /= np.max(np.abs(Phi)) 
                 Psi[:,:,count] = Phi
                 count += 1
 
