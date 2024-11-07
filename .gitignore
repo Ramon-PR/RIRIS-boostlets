@@ -4,3 +4,5 @@
 **/outputs/
 **/multirun/
 **/*.png
+**/*.log
+**/*.hydra
