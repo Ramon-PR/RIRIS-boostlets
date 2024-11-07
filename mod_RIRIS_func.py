@@ -343,7 +343,7 @@ def ista(image, mask, Sk, beta, epsilon, max_iterations=15, f_verbose=False, f_p
 
     # Decreasing thresholds: C*zeta0 == C[i] * (beta * ||alpha_0||_inf)
     zeta0 = beta * np.linalg.norm(alpha.ravel(), np.inf) # beta * ||alpha_0||_inf
-    C = np.linspace(1, epsilon / beta, max_iterations + 1)
+    C = np.linspace(1, epsilon / beta, max_iterations)
 
     # Initial residual norm
     rec_image = iffst(alpha, Sk)
@@ -352,13 +352,13 @@ def ista(image, mask, Sk, beta, epsilon, max_iterations=15, f_verbose=False, f_p
 
     its = 0
     while res_norm > epsilon and its < max_iterations:
-        its += 1
         # alpha, _, res_norm = common_operations(image, mask, Sk, alpha, threshold = C[its]*zeta0)
         alpha = common_operations(image, mask, Sk, alpha, threshold = C[its]*zeta0)
         rec_image_new = iffst(alpha, Sk)
         diff_image_new = mask * (image - rec_image_new)
         res_norm = np.linalg.norm(diff_image_new.ravel(), 2)  # || diff_image ||_2
 
+        its += 1
         if f_verbose:
             print(f'Iteration no. {its}/{max_iterations}, res_norm: {res_norm}')
 
