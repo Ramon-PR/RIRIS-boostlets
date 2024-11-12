@@ -1,29 +1,57 @@
+# NOTE: 
+# For reproducible results, activate np.random.seed(42) in line 17 of main.py
+
+# +++++++++++++++++++++ Configs already prepared for the user +++++++++++++++++++++++++++++++++++++
 defaults:
-  - database: Balder_T1000_M100
+  # - database: Balder_T1000_M100
+  - database: Balder_T0_M100
   - subsampling: default
   - ista: default
   - _self_
 
-folder_dict: ./saved_dicts/tan_dicts
-file_dict: BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_3_thH_3.mat
+# +++++++++++++++++++ The next options may overwrite the previous config options ++++++++++++++++++
 
+# --------- Dict to use --------------------------------------------------------------------------
+# folder_dict: ./saved_dicts/tan_dicts
+# file_dict: BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_3_thH_3.mat
+folder_dict: ./ss_saved_dicts/
+file_dict: SS_m_128_n_128.mat
+
+# --------- Subsampling of the mask (jitter, others may be used (hardcoded in main.py)) ----------
 subsampling:
-  ratio_mics: 0.2
+  ratio_mics: 0.33
+  # ratio_mics: 0.2
 
-# output_dir: ${hydra:runtime.output_dir}
-folder_struct: rm_${subsampling.ratio_mics}/T_${database.Tstart}_M0_${database.M0}
-output_dir: outputs/${folder_struct}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+# --- how do I want to organize the path for the outputs -------------
+folder_struct: stats_runs/shearlets/rm_${subsampling.ratio_mics}/T_${database.Tstart}_M0_${database.M0}
+# folder_struct: stats_runs/tan/rm_${subsampling.ratio_mics}/T_${database.Tstart}_M0_${database.M0}
+# folder_struct: rm_${subsampling.ratio_mics}/tan/T_${database.Tstart}_M0_${database.M0}
 
 
+
+# |||||||||||||||  Try not to modify this structure |||||||||||||||||||||||||||||||
 outputs:
-  images:
-    # Output for saved images
-    folder: ${output_dir}/images
-    file_im: reconstructed_image.png
-    file_mat: images.mat
-    f_write_dict: True
-
   performance:
-    folder: ${output_dir}/performance
-    file: perform.mat
-    f_write_dict: True
+    f_write_dict: true
+    folder: "performance"
+    file: "perform.mat"
+  images:
+    f_write_dict: true
+    folder: "images"
+    file_mat: "images.mat"
+    file_im: reconstructed_image.png
+
+# --- If I run normal mode, outputs are written in folder tree given by hydra.run.dir
+# --- If I run in multirun mode (-m), outputs are written in folder tree given by hydra.sweep.dir/hydra.sweep.subdir
+hydra:
+  run:
+    dir: outputs/${folder_struct}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${folder_struct}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+
+# python main.py
+# python .\run_main_multiple_dicts.py +folder=saved_dicts\tan_dicts\sc_like_shearlets
+# python .\run_main_multiple_dicts.py +folder=saved_dicts\tan_dicts\M128_bases
+# python main.py -m +repeat=range(20)

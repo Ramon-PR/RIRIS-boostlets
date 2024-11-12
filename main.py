@@ -14,6 +14,7 @@ from scipy.io import savemat
 # python ./main.py folder_dict=saved_dicts/tan_dicts file_dict=BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_15_thH_15.mat
 # Check also run_main_multiple_dicts.py
 
+# np.random.seed(42)
 @hydra.main(version_base=None, config_path="./configs", config_name="main")
 def main(cfg: DictConfig):
     # Inputs
@@ -87,6 +88,9 @@ def main(cfg: DictConfig):
     non_zero_alpha0 = np.sum(np.abs(alpha0.flatten())>0)
     non_zero_alpha = np.sum(np.abs(alpha.flatten())>0)
 
+    # Updated working directory by Hydra
+    output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+
     # Save performance outputs
     if cfg.outputs.performance.f_write_dict:
         perf_outputs = {
@@ -106,10 +110,13 @@ def main(cfg: DictConfig):
             "non_zero_alpha0": non_zero_alpha0, # Sparsity factors
             "non_zero_alpha": non_zero_alpha, # Sparsity factors
         }
-        os.makedirs(cfg.outputs.performance.folder, exist_ok=True)
-        savemat(os.path.join(cfg.outputs.performance.folder, cfg.outputs.performance.file), perf_outputs)
+        perf_folder = os.path.join(output_dir, cfg.outputs.performance.folder)
+        os.makedirs(perf_folder, exist_ok=True)
+        savemat(os.path.join(perf_folder, cfg.outputs.performance.file), perf_outputs)
 
     # Save image outputs
+    image_folder = os.path.join(output_dir, cfg.outputs.images.folder)
+    os.makedirs(image_folder, exist_ok=True)
     if cfg.outputs.images.f_write_dict:
         image_outputs = {
             "orig_image": orig_image,
@@ -117,8 +124,7 @@ def main(cfg: DictConfig):
             "final_image": final_image,
             "image_lin": image_lin,
         }
-        os.makedirs(cfg.outputs.images.folder, exist_ok=True)
-        savemat(os.path.join(cfg.outputs.images.folder, cfg.outputs.images.file_mat), image_outputs)
+        savemat(os.path.join(image_folder, cfg.outputs.images.file_mat), image_outputs)
 
     # Visualize results
     images = [(orig_image*mask0)[:100, :], image_lin[:100, :], final_image[:100, :], orig_image[:100, :]]
@@ -129,9 +135,9 @@ def main(cfg: DictConfig):
         ax[i].imshow(img)
         ax[i].set_title(titles[i])
         ax[i].axis('off')
-
     plt.tight_layout()
-    plt.savefig(os.path.join(cfg.outputs.images.folder, cfg.outputs.images.file_im))
+    image_file_path = os.path.join(image_folder, cfg.outputs.images.file_im)
+    plt.savefig(image_file_path)
 
 
 if __name__ == "__main__":
