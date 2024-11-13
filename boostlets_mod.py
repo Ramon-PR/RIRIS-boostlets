@@ -232,12 +232,14 @@ class Meyer_system:
         return self.a*self.alpha**(2*scale), self.b
 
     def max_scales(self, m_points):
-        # b*alpha^(2*s+1)>1
-        # omega_max = m/2 = b (so Psi**2(b)=1)
-        # omega_max = m_points/2
-        # b = omega_max
-        s = np.floor( 0.5*(np.emath.logn(n=self.alpha, x=2/m_points) - 1) ).astype('int') 
-        return s
+        """
+        For a grid discretization with m_points, (-int(m/2), ..., 0, ..., int(m-1/2))
+        b is the extreme point in that domain int(m/2)
+        We want at least one grid point in [b*alpha^(2S+1), b*alpha^(2S)]
+        b( alpha^(2S) - alpha^(2S+1) ) >= 1   ==>   (m/2)*( alpha^(2S) - alpha^(2S+1) ) >= 1
+        """
+        smax = np.floor( -np.log(m_points*(1-self.alpha)/2) / (2*np.log(self.alpha)) ).astype('int') 
+        return smax
 
     def get_omega(self, m_points):
         # omega = [-0.5, ..., 0, ...,0.5-domega]*b
