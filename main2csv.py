@@ -105,8 +105,8 @@ def main(cfg: DictConfig):
     final_image = imOps.recover_image(image_recov)
 
     # Linear interpolation
-    # image_linear = linear_interpolation_fft(image * mask, dx=dx, fs=fs, cs=cs)
-    # image_lin = imOps.recover_image(image_linear)
+    image_linear = linear_interpolation_fft(image * mask, dx=dx, fs=fs, cs=cs)
+    image_lin = imOps.recover_image(image_linear)
 
     # Performance metrics
     # NMSE_nlin, MAC, frqMAC = perforMetrics(
@@ -115,8 +115,10 @@ def main(cfg: DictConfig):
     # )
     # print(f"NMSE: lin = {NMSE_nlin[0]} / boostlet = {NMSE_nlin[1]}")
     NMSE = calculate_NMSE(orig_image, final_image)
-    NMSE = calculate_NMSE(orig_image, final_image)
+    NMSE_lin = calculate_NMSE(orig_image, image_lin)
     frqMAC, MAC = calculate_MAC(orig_image, final_image, fs)
+    frqMAC, MAC_lin = calculate_MAC(orig_image, image_lin, fs)
+
 
     # Sparsity
     # alpha0 = ffst(image, Sk)
@@ -129,11 +131,11 @@ def main(cfg: DictConfig):
         "dic_name": [file_dict],
         "rm_sk_ids": [list(rm_sk_ids)],
         "beta_star": [beta_star],
-        # "NMSE_lin": [NMSE_nlin[0]],
+        "NMSE_lin": [NMSE_lin],
         "NMSE": [NMSE],
         "frqMAC": [frqMAC],
-        # "MAC_lin": [MAC[0]],
-        "MAC": [MAC[1]],
+        "MAC_lin": [MAC_lin],
+        "MAC": [MAC],
         "beta_set": [list(beta_set)],
         "Jcurve": [list(Jcurve)],
         "rho": [list(rho)],
