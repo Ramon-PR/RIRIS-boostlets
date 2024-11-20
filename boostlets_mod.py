@@ -238,7 +238,8 @@ class Meyer_system:
         We want at least one grid point in [b*alpha^(2S+1), b*alpha^(2S)]
         b( alpha^(2S) - alpha^(2S+1) ) >= 1   ==>   (m/2)*( alpha^(2S) - alpha^(2S+1) ) >= 1
         """
-        smax = np.floor( -np.log(m_points*(1-self.alpha)/2) / (2*np.log(self.alpha)) ).astype('int') 
+        # smax = np.floor( -np.log(m_points*(1-self.alpha)/2) / (2*np.log(self.alpha)) ).astype('int')
+        smax = np.floor( -np.log(m_points*(self.alpha)/2) / (2*np.log(self.alpha)) ).astype('int') 
         return smax
 
     def get_omega(self, m_points):
