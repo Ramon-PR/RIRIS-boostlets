@@ -7,14 +7,15 @@ from boostlets_mod import Boostlet_syst, rm_sk_index_in_horiz_cone
 from mod_plotting_utilities import plot_array_images
 from mod_RIRIS_func import (
     load_DB_ZEA, jitter_downsamp_RIR, load_sk,
-    computePareto, ista, iffst, linear_interpolation_fft, perforMetrics, ImageOps, ffst,
+    computePareto, ista, iffst, linear_interpolation_fft, 
+    perforMetrics, ImageOps, ffst, calculate_NMSE, calculate_MAC
 )
 from scipy.io import savemat
 
 # python ./main.py folder_dict=saved_dicts/tan_dicts file_dict=BS_m_128_n_128_vsc_2_hsc_2_bases_0.5_0.5_thV_15_thH_15.mat
 # Check also run_main_multiple_dicts.py
 
-# np.random.seed(42)
+np.random.seed(42)
 @hydra.main(version_base=None, config_path="./configs", config_name="main")
 def main(cfg: DictConfig):
     # Inputs
@@ -50,13 +51,14 @@ def main(cfg: DictConfig):
     else: # If we give "file_im" then load the image and its parameters
         orig_image = None
 
-    mask0, _ = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics)
+    mask0, maskt = jitter_downsamp_RIR(orig_image.shape, ratio_t=1, ratio_x=ratio_mics)
 
     # Extrapolation
     extr_size = Sk.shape[:2]
     imOps = ImageOps(orig_image.shape, mask=mask0, extrap_shape=extr_size, mode=extrap_mode)
     image = imOps.expand_image(orig_image)
-    mask = imOps.get_mask(image)
+    # mask = imOps.get_mask(image)
+    mask = imOps.expand_image(mask0*maskt) # 2D mask ( it affeccts ISTA residual)
 
     # Remove selected elements from dictionary
     rm_sk_ids = rm_sk_index_in_horiz_cone(dx=dx, dt=dt, cs=cs, Sk=Sk)
@@ -76,11 +78,17 @@ def main(cfg: DictConfig):
     image_lin = imOps.recover_image(image_linear)
 
     # Performance metrics
-    NMSE_nlin, MAC, frqMAC = perforMetrics(
-        image=image, image_recov=image_recov, image_under=image * mask,
-        fs=fs, u=u, dx=dx, room=room
-    )
-    print(f"NMSE: lin = {NMSE_nlin[0]} / boostlet = {NMSE_nlin[1]}")
+    # NMSE_nlin, MAC_, frqMAC = perforMetrics(
+    #     image=image, image_recov=image_recov, image_under=image * mask,
+    #     fs=fs, u=u, dx=dx, room=room
+    # )
+    # NMSE_lin, NMSE = NMSE_nlin
+    # MAC_lin, MAC = MAC_
+    NMSE = calculate_NMSE(orig_image, final_image)
+    NMSE_lin = calculate_NMSE(orig_image, image_lin)
+    frqMAC, MAC = calculate_MAC(orig_image, final_image, fs)
+    frqMAC, MAC_lin = calculate_MAC(orig_image, image_lin, fs)
+    print(f"NMSE: lin = {NMSE_lin} / boostlet = {NMSE}")
 
     # Sparsity
     alpha0 = ffst(image, Sk)
@@ -97,11 +105,11 @@ def main(cfg: DictConfig):
             "dic_name": file_dict,
             "rm_sk_ids": rm_sk_ids,
             "beta_star": beta_star,
-            "NMSE_lin": NMSE_nlin[0],
-            "NMSE": NMSE_nlin[1],
+            "NMSE_lin": NMSE_lin,
+            "NMSE": NMSE,
             "frqMAC": frqMAC,
-            "MAC_lin": MAC[0],
-            "MAC": MAC[1],
+            "MAC_lin": MAC_lin,
+            "MAC": MAC,
             "beta_set": beta_set,
             "Jcurve": Jcurve,
             "rho": rho, # ||(im - im*)*mask||_2 (beta_i) Pareto
